@@ -6,6 +6,7 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.SoundCategory;
@@ -18,11 +19,12 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.0.0")
+@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.1.0", acceptedMinecraftVersions = "[1.9,1.12)")
 public class Dirt2Path {
 
 	public static final String MOD_ID = "dirt2path";
 	public static final String MOD_NAME = "Dirt2Path";
+	public static final ItemStack EMPTY = new ItemStack((Item) null);
 
 	@Mod.EventHandler
 	public void onInit(FMLInitializationEvent event) {
@@ -38,7 +40,7 @@ public class Dirt2Path {
 		BlockPos blockPos = event.getPos();
 		ItemStack itemStack = player.getHeldItemMainhand();
 
-		if(itemStack==null) return;
+		if(itemStack==null || itemStack==EMPTY) return;
 
 		if(!itemStack.canHarvestBlock(Blocks.SNOW.getDefaultState())) return;
 
