@@ -18,13 +18,19 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.registry.GameRegistry;
 
-@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.1.0", acceptedMinecraftVersions = "[1.9,1.12)")
+@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.2.0", acceptedMinecraftVersions = "[1.9,1.12)")
 public class Dirt2Path {
 
 	public static final String MOD_ID = "dirt2path";
 	public static final String MOD_NAME = "Dirt2Path";
 	public static final ItemStack EMPTY = new ItemStack((Item) null);
+
+	@GameRegistry.ObjectHolder("biomesoplenty:grass_path")
+	public static final Block BOP_GRASS_PATH = null;
+	@GameRegistry.ObjectHolder("biomesoplenty:dirt")
+	public static final Block BOP_DIRT = null;
 
 	@Mod.EventHandler
 	public void onInit(FMLInitializationEvent event) {
@@ -45,10 +51,9 @@ public class Dirt2Path {
 		if(!itemStack.canHarvestBlock(Blocks.SNOW.getDefaultState())) return;
 
 		IBlockState iBlockState = world.getBlockState(blockPos);
-		Block block = iBlockState.getBlock();
 
-		if(world.getBlockState(blockPos.up()).getMaterial() == Material.AIR && block == Blocks.DIRT) {
-			IBlockState pathState = Blocks.GRASS_PATH.getDefaultState();
+		if(world.getBlockState(blockPos.up()).getMaterial() == Material.AIR && isBlockDirt(iBlockState)) {
+			IBlockState pathState = getPathBlockState(iBlockState);
 			world.playSound(player, blockPos, SoundEvents.ITEM_SHOVEL_FLATTEN, SoundCategory.BLOCKS, 1.0F, 1.0F);
 
 			player.swingArm(EnumHand.MAIN_HAND);
@@ -59,5 +64,20 @@ public class Dirt2Path {
 				itemStack.damageItem(1, player);
 			}
 		}
+	}
+
+	protected boolean isBlockDirt(IBlockState iBlockStateIn) {
+		int blockMeta = iBlockStateIn.getBlock().getMetaFromState(iBlockStateIn);
+		if(iBlockStateIn.getBlock() == Blocks.DIRT) return true;
+		if(iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4) return true;
+		return false;
+	}
+
+	protected IBlockState getPathBlockState(IBlockState iBlockStateIn) {
+		int blockMeta = iBlockStateIn.getBlock().getMetaFromState(iBlockStateIn);
+		if(iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4) {
+			return BOP_GRASS_PATH.getStateFromMeta(blockMeta);
+		}
+		return Blocks.GRASS_PATH.getDefaultState();
 	}
 }
