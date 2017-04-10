@@ -15,55 +15,76 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
-@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.3.0", acceptedMinecraftVersions = "[1.9,1.12)")
+@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.4.0", acceptedMinecraftVersions = "[1.9,1.12)")
 public class Dirt2Path {
 
 	public static final String MOD_ID = "dirt2path";
 	public static final String MOD_NAME = "Dirt2Path";
 	public static final ItemStack EMPTY = new ItemStack((Item) null);
 
+	public static Configuration config;
+	public static boolean flattenBOP;
+	public static boolean flattenBotania;
+	public static boolean raisePath;
+
 	@GameRegistry.ObjectHolder("biomesoplenty:grass_path")
 	public static final Block BOP_GRASS_PATH = null;
 	@GameRegistry.ObjectHolder("biomesoplenty:dirt")
 	public static final Block BOP_DIRT = null;
+	@GameRegistry.ObjectHolder("botania:altGrass")
+	public static final Block BOTANIA_GRASS_1_10_2 = null;
+	@GameRegistry.ObjectHolder("botania:altgrass")
+	public static final Block BOTANIA_GRASS_1_11_2 = null;
+
+	@Mod.EventHandler
+	public void onPreInit(FMLPreInitializationEvent event) {
+
+		config = new Configuration(event.getSuggestedConfigurationFile());
+		config.load();
+		raisePath = config.getBoolean("Raise Paths", "General", true, "Convert Path Blocks to Dirt on Right Click");
+		flattenBOP = config.getBoolean("Flatten Biomes O Plenty Dirt", "General", true, "Convert Biomes O Plenty Loamy, Sandy, and Silty Dirt into the appropriate path blocks");
+		flattenBotania = config.getBoolean("Flatten Botania", "General", true, "Convert Botania Grasses to the default Grass Path.");
+		config.save();
+	}
 
 	@Mod.EventHandler
 	public void onInit(FMLInitializationEvent event) {
-
 		MinecraftForge.EVENT_BUS.register(this);
 	}
 
 	@SubscribeEvent
 	public void onBlockRightclick(PlayerInteractEvent.RightClickBlock event) {
 
-			EntityPlayer player = event.getEntityPlayer();
-			World world = event.getWorld();
-			BlockPos blockPos = event.getPos();
-			ItemStack itemStack = player.getHeldItem(event.getHand());
+		EntityPlayer player = event.getEntityPlayer();
+		World world = event.getWorld();
+		BlockPos blockPos = event.getPos();
+		ItemStack itemStack = player.getHeldItem(event.getHand());
 
-			if (itemStack == null || itemStack == EMPTY)
-				return;
+		if (itemStack == null || itemStack == EMPTY)
+			return;
 
-			if (!itemStack.canHarvestBlock(Blocks.SNOW.getDefaultState()))
-				return;
+		if (!itemStack.canHarvestBlock(Blocks.SNOW.getDefaultState()))
+			return;
 
-			IBlockState iBlockState = world.getBlockState(blockPos);
+		IBlockState iBlockState = world.getBlockState(blockPos);
 
-			if (world.getBlockState(blockPos.up()).getMaterial() == Material.AIR) {
-				if (isBlockDirt(iBlockState)) {
-					IBlockState pathState = getPathBlockState(iBlockState);
-					setPathOrDirt(world, pathState, blockPos, SoundEvents.ITEM_SHOVEL_FLATTEN, player, itemStack, event.getHand());
-				} else if (isBlockPath(iBlockState)) {
-					IBlockState dirtState = getDirtBlockState(iBlockState);
-					setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
-				}
+		if (world.getBlockState(blockPos.up()).getMaterial() == Material.AIR) {
+			if (isBlockDirt(iBlockState)) {
+				IBlockState pathState = getPathBlockState(iBlockState);
+				setPathOrDirt(world, pathState, blockPos, SoundEvents.ITEM_SHOVEL_FLATTEN, player, itemStack, event.getHand());
+			} else if (isBlockPath(iBlockState)) {
+				IBlockState dirtState = getDirtBlockState(iBlockState);
+				setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
 			}
+		}
 	}
 
 	protected void setPathOrDirt(World world, IBlockState blockState, BlockPos blockPos, SoundEvent soundEvent, EntityPlayer player, ItemStack itemStack, EnumHand hand) {
@@ -78,14 +99,16 @@ public class Dirt2Path {
 	protected boolean isBlockPath(IBlockState iBlockStateIn) {
 		int blockMeta = iBlockStateIn.getBlock().getMetaFromState(iBlockStateIn);
 		if(iBlockStateIn.getBlock() == Blocks.GRASS_PATH) return true;
-		if(iBlockStateIn.getBlock() == BOP_GRASS_PATH && blockMeta <4) return true;
+		if(flattenBOP && (iBlockStateIn.getBlock() == BOP_GRASS_PATH && blockMeta <4)) return true;
 		return false;
 	}
 
 	protected boolean isBlockDirt(IBlockState iBlockStateIn) {
 		int blockMeta = iBlockStateIn.getBlock().getMetaFromState(iBlockStateIn);
 		if(iBlockStateIn.getBlock() == Blocks.DIRT) return true;
-		if(iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4) return true;
+		if(flattenBOP  && (iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4)) return true;
+		if(flattenBotania && iBlockStateIn.getBlock() == BOTANIA_GRASS_1_10_2) return true;
+		if(flattenBotania && iBlockStateIn.getBlock() == BOTANIA_GRASS_1_11_2) return true;
 		return false;
 	}
 
