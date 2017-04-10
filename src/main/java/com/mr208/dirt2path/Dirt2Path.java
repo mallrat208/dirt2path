@@ -58,17 +58,17 @@ public class Dirt2Path {
 			if (world.getBlockState(blockPos.up()).getMaterial() == Material.AIR) {
 				if (isBlockDirt(iBlockState)) {
 					IBlockState pathState = getPathBlockState(iBlockState);
-					setPathOrDirt(world, pathState, blockPos, SoundEvents.ITEM_SHOVEL_FLATTEN, player, itemStack);
+					setPathOrDirt(world, pathState, blockPos, SoundEvents.ITEM_SHOVEL_FLATTEN, player, itemStack, event.getHand());
 				} else if (isBlockPath(iBlockState)) {
 					IBlockState dirtState = getDirtBlockState(iBlockState);
-					setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack);
+					setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
 				}
 			}
 	}
 
-	protected void setPathOrDirt(World world, IBlockState blockState, BlockPos blockPos, SoundEvent soundEvent, EntityPlayer player, ItemStack itemStack) {
+	protected void setPathOrDirt(World world, IBlockState blockState, BlockPos blockPos, SoundEvent soundEvent, EntityPlayer player, ItemStack itemStack, EnumHand hand) {
 		world.playSound(player, blockPos, soundEvent, SoundCategory.BLOCKS, 1.0F, 1.0F);
-		player.swingArm(EnumHand.MAIN_HAND);
+		player.swingArm(hand);
 		if(!world.isRemote) {
 			world.setBlockState(blockPos, blockState, 11);
 			itemStack.damageItem(1, player);
