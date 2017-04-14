@@ -28,7 +28,7 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
-@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.5.0", acceptedMinecraftVersions = "[1.9,1.12)")
+@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.6.0", acceptedMinecraftVersions = "[1.9,1.12)")
 public class Dirt2Path {
 
 	public static final String MOD_ID = "dirt2path";
@@ -41,12 +41,20 @@ public class Dirt2Path {
 	public static boolean flattenBOP;
 	public static boolean flattenBotania;
 	public static boolean raisePath;
+	public static boolean raiseFarmland;
 	public static boolean patchCOFH;
 
+	@GameRegistry.ObjectHolder("biomesoplenty:grass")
+	public static final Block BOP_GRASS = null;
 	@GameRegistry.ObjectHolder("biomesoplenty:grass_path")
 	public static final Block BOP_GRASS_PATH = null;
 	@GameRegistry.ObjectHolder("biomesoplenty:dirt")
 	public static final Block BOP_DIRT = null;
+	@GameRegistry.ObjectHolder("biomesoplenty:farmland_0")
+	public static final Block BOP_FARMLAND_0 = null;
+	@GameRegistry.ObjectHolder("biomesoplenty:farmland_1")
+	public static final Block BOP_FARMLAND_1 = null;
+
 	@GameRegistry.ObjectHolder("botania:altGrass")
 	public static final Block BOTANIA_GRASS_1_10_2 = null;
 	@GameRegistry.ObjectHolder("botania:altgrass")
@@ -61,6 +69,7 @@ public class Dirt2Path {
 		config = new Configuration(event.getSuggestedConfigurationFile());
 		config.load();
 		raisePath = config.getBoolean("Take Backsies", "General", true, "Convert Path Blocks to Dirt on Right Click");
+		raiseFarmland = config.getBoolean("Remove Farmland", "General", true,"Convert Farmland Blocks to Dirt on Right Click.");
 		flattenBOP = config.getBoolean("Biomes O Plenty", "General", true, "Convert Biomes O Plenty Loamy, Sandy, and Silty Dirt into the appropriate Path blocks");
 		flattenBotania = config.getBoolean("Botania", "General", true, "Convert Botania Grasses to the default Grass Path.");
 		patchCOFH = config.getBoolean("COFH Core", "General", false, "Enable COFH ItemShovelCore to convert Grass blocks to Path blocks");
@@ -100,9 +109,12 @@ public class Dirt2Path {
 
 		if (world.getBlockState(blockPos.up()).getMaterial() == Material.AIR) {
 			if (isBlockDirt(iBlockState, itemStack)) {
-				IBlockState pathState = getPathBlockState(iBlockState);
+				IBlockState pathState = getPathBlockState(iBlockState, itemStack);
 				setPathOrDirt(world, pathState, blockPos, SoundEvents.ITEM_SHOVEL_FLATTEN, player, itemStack, event.getHand());
-			} else if (isBlockPath(iBlockState)) {
+			} else if (raisePath && isBlockPath(iBlockState)) {
+				IBlockState dirtState = getDirtBlockState(iBlockState);
+				setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
+			} else if (raiseFarmland && isBlockFarmland(iBlockState)) {
 				IBlockState dirtState = getDirtBlockState(iBlockState);
 				setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
 			}
@@ -131,7 +143,18 @@ public class Dirt2Path {
 		if(flattenBOP  && (iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4)) return true;
 		if(flattenBotania && iBlockStateIn.getBlock() == BOTANIA_GRASS_1_10_2) return true;
 		if(flattenBotania && iBlockStateIn.getBlock() == BOTANIA_GRASS_1_11_2) return true;
-		if((COFHLoaded && COFHShovel.isInstance(itemStackIn.getItem())) && iBlockStateIn.getBlock() == Blocks.GRASS) return  true;
+		if(COFHLoaded && COFHShovel.isInstance(itemStackIn.getItem())) {
+			if(iBlockStateIn.getBlock() == Blocks.GRASS) return  true;
+			if(iBlockStateIn.getBlock() == BOP_GRASS && blockMeta <4) return true;
+		}
+		return false;
+	}
+
+	protected boolean isBlockFarmland(IBlockState iBlockStateIn) {
+		int blockMeta = iBlockStateIn.getBlock().getMetaFromState(iBlockStateIn);
+		if(iBlockStateIn.getBlock() == Blocks.FARMLAND) return true;
+		if(iBlockStateIn.getBlock() == BOP_FARMLAND_0) return true;
+		if(iBlockStateIn.getBlock() == BOP_FARMLAND_1) return true;
 		return false;
 	}
 
@@ -140,13 +163,24 @@ public class Dirt2Path {
 		if(iBlockState.getBlock() == BOP_GRASS_PATH && blockMeta <4) {
 			return BOP_DIRT.getStateFromMeta(blockMeta);
 		}
+		if(iBlockState.getBlock() == BOP_FARMLAND_0) {
+			return BOP_DIRT.getStateFromMeta(blockMeta & 1);
+		}
+		if(iBlockState.getBlock() == BOP_FARMLAND_1) {
+			return BOP_DIRT.getStateFromMeta(3);
+		}
 		return Blocks.DIRT.getDefaultState();
 	}
 
-	protected IBlockState getPathBlockState(IBlockState iBlockStateIn) {
+	protected IBlockState getPathBlockState(IBlockState iBlockStateIn, ItemStack itemStackIn) {
 		int blockMeta = iBlockStateIn.getBlock().getMetaFromState(iBlockStateIn);
 		if(iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4) {
 			return BOP_GRASS_PATH.getStateFromMeta(blockMeta);
+		}
+		if(COFHLoaded && COFHShovel.isInstance(itemStackIn.getItem())) {
+			if(iBlockStateIn.getBlock() == BOP_GRASS && blockMeta <4) {
+				return BOP_GRASS_PATH.getStateFromMeta(blockMeta);
+			}
 		}
 		return Blocks.GRASS_PATH.getDefaultState();
 	}
