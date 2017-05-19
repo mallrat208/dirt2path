@@ -30,7 +30,7 @@ import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
-@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.6.1", acceptedMinecraftVersions = "[1.9,1.12)")
+@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.6.2", acceptedMinecraftVersions = "[1.9,1.12)")
 public class Dirt2Path {
 
 	public static final String MOD_ID = "dirt2path";
@@ -43,6 +43,7 @@ public class Dirt2Path {
 	public static boolean flattenBOP;
 	public static boolean flattenBotania;
 	public static boolean raisePath;
+	public static boolean raisePathSneaky;
 	public static boolean raiseFarmland;
 	public static boolean patchCOFH;
 
@@ -71,6 +72,7 @@ public class Dirt2Path {
 		config = new Configuration(event.getSuggestedConfigurationFile());
 		config.load();
 		raisePath = config.getBoolean("Take Backsies", "General", true, "Convert Path Blocks to Dirt on Right Click");
+		raisePathSneaky = config.getBoolean("Take Bascies Sneaky", "General", false, "If True, You have to be sneaking to use Take Backsies");
 		raiseFarmland = config.getBoolean("Remove Farmland", "General", true,"Convert Farmland Blocks to Dirt on Right Click.");
 		flattenBOP = config.getBoolean("Biomes O Plenty", "General", true, "Convert Biomes O Plenty Loamy, Sandy, and Silty Dirt into the appropriate Path blocks");
 		flattenBotania = config.getBoolean("Botania", "General", true, "Convert Botania Grasses to the default Grass Path.");
@@ -104,7 +106,6 @@ public class Dirt2Path {
 		BlockPos blockPos = event.getPos();
 		ItemStack itemStack = player.getHeldItem(event.getHand());
 
-		if (itemStack == null || itemStack == EMPTY)
 			return;
 
 		if (!itemStack.canHarvestBlock(Blocks.SNOW.getDefaultState()))
@@ -116,7 +117,7 @@ public class Dirt2Path {
 			if (isBlockDirt(iBlockState, itemStack)) {
 				IBlockState pathState = getPathBlockState(iBlockState, itemStack);
 				setPathOrDirt(world, pathState, blockPos, SoundEvents.ITEM_SHOVEL_FLATTEN, player, itemStack, event.getHand());
-			} else if (raisePath && isBlockPath(iBlockState)) {
+			} else if (raisePath && requiresSneaking(raisePathSneaky, player) && isBlockPath(iBlockState)) {
 				IBlockState dirtState = getDirtBlockState(iBlockState);
 				setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
 			} else if (raiseFarmland && player.isSneaking() && isBlockFarmland(iBlockState)) {
@@ -124,6 +125,10 @@ public class Dirt2Path {
 				setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
 			}
 		}
+	}
+
+	protected boolean requiresSneaking(boolean sneaky, EntityPlayer player) {
+		return !sneaky || player.isSneaking();
 	}
 
 	protected void setPathOrDirt(World world, IBlockState blockState, BlockPos blockPos, SoundEvent soundEvent, EntityPlayer player, ItemStack itemStack, EnumHand hand) {
