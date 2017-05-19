@@ -25,10 +25,12 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
-@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.6.0", acceptedMinecraftVersions = "[1.9,1.12)")
+@Mod(modid = Dirt2Path.MOD_ID, name = Dirt2Path.MOD_NAME, version = "1.6.1", acceptedMinecraftVersions = "[1.9,1.12)")
 public class Dirt2Path {
 
 	public static final String MOD_ID = "dirt2path";
@@ -61,7 +63,7 @@ public class Dirt2Path {
 	public static final Block BOTANIA_GRASS_1_11_2 = null;
 
 	public static Class COFHShovel;
-	public static boolean COFHLoaded = false;
+	public static boolean COFHWorkaround = false;
 
 	@Mod.EventHandler
 	public void onPreInit(FMLPreInitializationEvent event) {
@@ -84,15 +86,18 @@ public class Dirt2Path {
 		if(patchCOFH && Loader.isModLoaded("cofhcore")) {
 			try {
 				COFHShovel = Class.forName("cofh.core.item.tool.ItemShovelCore");
-				COFHLoaded = COFHShovel!=null;
+				COFHWorkaround = COFHShovel!=null;
 			} catch (ClassNotFoundException e) {
 				logger.info("COFH Core detected but unable to find ItemShovelCore");
 			}
 		}
 	}
 
-	@SubscribeEvent
+	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void onBlockRightclick(PlayerInteractEvent.RightClickBlock event) {
+
+		if(event.getResult() != Event.Result.DEFAULT || event.isCanceled())
+			return;
 
 		EntityPlayer player = event.getEntityPlayer();
 		World world = event.getWorld();
@@ -114,7 +119,7 @@ public class Dirt2Path {
 			} else if (raisePath && isBlockPath(iBlockState)) {
 				IBlockState dirtState = getDirtBlockState(iBlockState);
 				setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
-			} else if (raiseFarmland && isBlockFarmland(iBlockState)) {
+			} else if (raiseFarmland && player.isSneaking() && isBlockFarmland(iBlockState)) {
 				IBlockState dirtState = getDirtBlockState(iBlockState);
 				setPathOrDirt(world, dirtState, blockPos, SoundEvents.ITEM_HOE_TILL, player, itemStack, event.getHand());
 			}
@@ -143,7 +148,7 @@ public class Dirt2Path {
 		if(flattenBOP  && (iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4)) return true;
 		if(flattenBotania && iBlockStateIn.getBlock() == BOTANIA_GRASS_1_10_2) return true;
 		if(flattenBotania && iBlockStateIn.getBlock() == BOTANIA_GRASS_1_11_2) return true;
-		if(COFHLoaded && COFHShovel.isInstance(itemStackIn.getItem())) {
+		if(COFHWorkaround && COFHShovel.isInstance(itemStackIn.getItem())) {
 			if(iBlockStateIn.getBlock() == Blocks.GRASS) return  true;
 			if(iBlockStateIn.getBlock() == BOP_GRASS && blockMeta <4) return true;
 		}
@@ -177,7 +182,7 @@ public class Dirt2Path {
 		if(iBlockStateIn.getBlock() == BOP_DIRT && blockMeta < 4) {
 			return BOP_GRASS_PATH.getStateFromMeta(blockMeta);
 		}
-		if(COFHLoaded && COFHShovel.isInstance(itemStackIn.getItem())) {
+		if(COFHWorkaround && COFHShovel.isInstance(itemStackIn.getItem())) {
 			if(iBlockStateIn.getBlock() == BOP_GRASS && blockMeta <4) {
 				return BOP_GRASS_PATH.getStateFromMeta(blockMeta);
 			}
