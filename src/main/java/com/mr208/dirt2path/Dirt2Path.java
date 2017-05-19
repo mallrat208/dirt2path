@@ -106,6 +106,7 @@ public class Dirt2Path {
 		BlockPos blockPos = event.getPos();
 		ItemStack itemStack = player.getHeldItem(event.getHand());
 
+		if (itemStack == null || itemStack == EMPTY || itemStack.getItem() == Item.getItemFromBlock(Blocks.AIR) || itemStack.getItemDamage() < -32768 || itemStack.getItemDamage() > 65535)
 			return;
 
 		if (!itemStack.canHarvestBlock(Blocks.SNOW.getDefaultState()))
